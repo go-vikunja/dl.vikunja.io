@@ -6,7 +6,9 @@ export function getSiteConfig(env: Env, domain: string): SiteConfig | undefined 
             name: 'Vikunja Download',
             bucket: env.BUCKET_vikunja,
             desp: {
-                '/': 'root',
+                '/': 'Vikunja Download',
+                '/vikunja': 'Vikunja Server Package download',
+                '/desktop': 'Vikunja Desktop download',
             },
             showPoweredBy: false, // Set to false to hide the "Powered by" information at footer
 
