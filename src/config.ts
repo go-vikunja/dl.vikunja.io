@@ -2,19 +2,17 @@ import { Env, SiteConfig } from './types';
 
 export function getSiteConfig(env: Env, domain: string): SiteConfig | undefined {
     const configs: {[domain: string]: SiteConfig} = {
-        'bucketdomain.example.com': {
-            name: "Name of your website",
-            bucket: env.BUCKET_bucketname,
+        'dl.vikunja.io': {
+            name: 'Vikunja Download',
+            bucket: env.BUCKET_vikunja,
             desp: {
-                '/': "Description of your website at default",
-                '/path': "Description of your website at /path",
-                '/path/to/file.txt': "Description of file /path/to/file.txt",
+                '/': 'root',
             },
-            showPoweredBy: true, // Set to false to hide the "Powered by" information at footer
+            showPoweredBy: false, // Set to false to hide the "Powered by" information at footer
 
             /// Decode URI when listing objects, useful when you have space or special characters in object key
             /// Recommended to enable it for new installations, but default to false for backward compatibility
-            decodeURI: true, 
+            decodeURI: true,
 
             /// [Optional] Legal information of your website
             /// Your local government (for example Mainland China) may requires you to put some legal info at footer
