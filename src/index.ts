@@ -1,5 +1,5 @@
 import { Env, SiteConfig } from './types';
-import { renderTemplFull } from './render';
+import { renderTemplFull, renderJson } from './render';
 import { getSiteConfig } from './config';
 
 async function listBucket(bucket: R2Bucket, options?: R2ListOptions): Promise<R2Objects> {
@@ -60,42 +60,74 @@ export function wantsJson(request: Request): boolean {
 
 export default {
     async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-        const originResponse = await fetch(request);
-
         const url = new URL(request.url);
         const domain = url.hostname;
-        const path = url.pathname;
+        const isJson = wantsJson(request);
+
+        // Strip .json suffix for bucket lookup
+        let path = url.pathname;
+        if (path.endsWith('.json')) {
+            path = path.slice(0, -'.json'.length);
+            // Ensure path ends with / for directory listing
+            if (!path.endsWith('/')) {
+                path += '/';
+            }
+        }
 
         const siteConfig = getSiteConfig(env, domain);
         if (!siteConfig) {
-            // TODO: Should send a email to notify the admin
+            if (isJson) {
+                return new Response(JSON.stringify({ error: 'site not configured' }), {
+                    status: 404,
+                    headers: { 'Content-Type': 'application/json' },
+                });
+            }
+            const originResponse = await fetch(request);
             return originResponse;
         }
-        // remove the leading '/'
+
         const objectKey = siteConfig.decodeURI ? decodeURIComponent(path.slice(1)) : path.slice(1);
 
-        if (shouldReturnOriginResponse(originResponse, siteConfig)) {
-            return originResponse;
+        if (!isJson) {
+            const originResponse = await fetch(request);
+            if (shouldReturnOriginResponse(originResponse, siteConfig)) {
+                return originResponse;
+            }
+
+            const bucket = siteConfig.bucket;
+            const index = await listBucket(bucket, {
+                prefix: objectKey,
+                delimiter: '/',
+                include: ['httpMetadata', 'customMetadata'],
+            });
+            const files = index.objects.filter((obj) => obj.key !== objectKey);
+            const folders = index.delimitedPrefixes.filter((prefix) => prefix !== objectKey);
+            if (files.length === 0 && folders.length === 0 && originResponse.status === 404) {
+                return originResponse;
+            }
+            return new Response(renderTemplFull(files, folders, '/' + objectKey, siteConfig), {
+                headers: { 'Content-Type': 'text/html; charset=utf-8' },
+                status: 200,
+            });
         }
 
+        // JSON response path
         const bucket = siteConfig.bucket;
         const index = await listBucket(bucket, {
             prefix: objectKey,
             delimiter: '/',
             include: ['httpMetadata', 'customMetadata'],
         });
-        // filter out key===prefix, appears when dangerousOverwriteZeroByteObject===true
         const files = index.objects.filter((obj) => obj.key !== objectKey);
         const folders = index.delimitedPrefixes.filter((prefix) => prefix !== objectKey);
-        // If no object found, return origin 404 response. Only return 404 because if there is a zero byte object,
-        // user may want to show a empty folder.
-        if (files.length === 0 && folders.length === 0 && originResponse.status === 404) {
-            return originResponse;
+        if (files.length === 0 && folders.length === 0) {
+            return new Response(JSON.stringify({ error: 'not found' }), {
+                status: 404,
+                headers: { 'Content-Type': 'application/json' },
+            });
         }
-        return new Response(renderTemplFull(files, folders, '/' + objectKey, siteConfig), {
-            headers: {
-                'Content-Type': 'text/html; charset=utf-8',
-            },
+        return new Response(renderJson(files, folders, '/' + objectKey), {
+            headers: { 'Content-Type': 'application/json' },
             status: 200,
         });
     },
