@@ -49,6 +49,15 @@ function shouldReturnOriginResponse(originResponse: Response, siteConfig: SiteCo
     }
 }
 
+export function wantsJson(request: Request): boolean {
+	const url = new URL(request.url);
+	if (url.pathname.endsWith('.json')) {
+		return true;
+	}
+	const accept = request.headers.get('Accept') ?? '';
+	return accept.includes('application/json');
+}
+
 export default {
     async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
         const originResponse = await fetch(request);
