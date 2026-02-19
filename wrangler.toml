@@ -1,4 +1,4 @@
-name = "r2-dir-list"
+name = "dl-vikunja-io"
 main = "src/index.ts"
 compatibility_date = "2023-03-01"
 
