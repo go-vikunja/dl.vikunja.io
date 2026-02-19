@@ -40,3 +40,46 @@ It will only overwrite the response when all of the following conditions are met
 -   There exist "subdirectories" or "files" under the current "directory" (The quotation marks here are used because directories and files are abstract concepts in object storage)
 
 In such a case, it will generate a HTML page with the list of "subdirectories" and "files" under the current "directory" and return it. Otherwise, it will just return the response from R2. So **putting this worker in front of your R2 bucket will not affect any normal access to your bucket**.
+
+## JSON API
+
+Directory listings can be retrieved as JSON instead of HTML. This is useful for programmatic access or building custom UIs on top of the file listing.
+
+There are two ways to request JSON:
+
+1. **Append `.json` to the path:**
+
+```bash
+curl https://dl.vikunja.io/vikunja/.json
+```
+
+2. **Use the `Accept: application/json` header:**
+
+```bash
+curl -H 'Accept: application/json' https://dl.vikunja.io/vikunja/
+```
+
+The response has the following structure:
+
+```json
+{
+  "path": "/vikunja/",
+  "folders": [
+    { "name": "unstable", "path": "/vikunja/unstable/" }
+  ],
+  "files": [
+    {
+      "name": "vikunja-0.24.6.zip",
+      "path": "/vikunja/vikunja-0.24.6.zip",
+      "size": 1024000,
+      "modified": "2025-01-15T10:30:00.000Z"
+    }
+  ]
+}
+```
+
+If the path does not exist, a 404 is returned:
+
+```json
+{ "error": "not found" }
+```
