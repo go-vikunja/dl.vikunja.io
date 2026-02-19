@@ -190,3 +190,19 @@ function generateFooter(siteConfig: SiteConfig, path: string): string {
     }
     return contents.join('');
 }
+
+export var renderJson = (files: R2Object[], folders: string[], path: string): string => {
+	return JSON.stringify({
+		path,
+		folders: folders.map((folder) => ({
+			name: cleanFolderName(folder),
+			path: '/' + folder,
+		})),
+		files: files.map((file) => ({
+			name: cleanFileName(file.key),
+			path: '/' + file.key,
+			size: file.size,
+			modified: file.uploaded.toJSON(),
+		})),
+	});
+};
