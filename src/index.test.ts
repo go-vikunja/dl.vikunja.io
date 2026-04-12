@@ -88,4 +88,35 @@ describe('getPackageRedirect', () => {
 	it('returns null for files without a version', () => {
 		expect(getPackageRedirect('/repos/apt/pool/something.deb')).toBeNull();
 	});
+
+	// Desktop package tests
+	it('redirects desktop .deb to /desktop/', () => {
+		expect(getPackageRedirect('/repos/apt/pool/Vikunja Desktop-v2.2.0.deb')).toBe(
+			'/desktop/v2.2.0/Vikunja Desktop-v2.2.0.deb',
+		);
+	});
+
+	it('redirects desktop .rpm to /desktop/', () => {
+		expect(getPackageRedirect('/repos/rpm/x86_64/Vikunja Desktop-v2.2.0.rpm')).toBe(
+			'/desktop/v2.2.0/Vikunja Desktop-v2.2.0.rpm',
+		);
+	});
+
+	it('redirects desktop .apk to /desktop/', () => {
+		expect(getPackageRedirect('/repos/apk/main/x86_64/Vikunja Desktop-v2.2.0.apk')).toBe(
+			'/desktop/v2.2.0/Vikunja Desktop-v2.2.0.apk',
+		);
+	});
+
+	it('redirects desktop .pacman to /desktop/', () => {
+		expect(getPackageRedirect('/repos/pacman/x86_64/Vikunja Desktop-v2.2.0.pacman')).toBe(
+			'/desktop/v2.2.0/Vikunja Desktop-v2.2.0.pacman',
+		);
+	});
+
+	it('handles desktop release candidate versions', () => {
+		expect(getPackageRedirect('/repos/apt/pool/Vikunja Desktop-v1.0.0-rc1.deb')).toBe(
+			'/desktop/v1.0.0-rc1/Vikunja Desktop-v1.0.0-rc1.deb',
+		);
+	});
 });

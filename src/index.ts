@@ -2,16 +2,20 @@ import { Env, SiteConfig } from './types';
 import { renderTemplFull, renderJson } from './render';
 import { getSiteConfig } from './config';
 
-const PACKAGE_EXTENSIONS = ['.deb', '.rpm', '.apk', '.archlinux', '.pkg.tar.zst'];
+const PACKAGE_EXTENSIONS = ['.deb', '.rpm', '.apk', '.archlinux', '.pacman', '.pkg.tar.zst'];
 
-// Matches version like v2.2.0, 0.24.6, v1.0.0-rc1, v1.0.0-beta2, etc.
-// Captures the full version including optional v-prefix and pre-release suffix.
-const VERSION_RE = /vikunja-(v?\d+\.\d+\.\d+(?:-[a-zA-Z]+\d*)?)-/;
+// Server packages: vikunja-v2.2.0-x86_64.deb, vikunja-0.24.6-aarch64.rpm, etc.
+const SERVER_VERSION_RE = /vikunja-(v?\d+\.\d+\.\d+(?:-[a-zA-Z]+\d*)?)-/;
+
+// Desktop packages: Vikunja Desktop-v2.2.0.deb, Vikunja Desktop-unstable.rpm, etc.
+const DESKTOP_VERSION_RE = /Vikunja Desktop-(v?\d+\.\d+\.\d+(?:-[a-zA-Z]+\d*)?)\./;
 
 /**
  * For requests under /repos/ that target a package file, redirect to the
- * existing artifact at /vikunja/<version>/<filename> so we don't need to
- * store the same file twice in R2.
+ * existing artifact so we don't need to store the same file twice in R2.
+ *
+ * Server packages redirect to /vikunja/<version>/<filename>.
+ * Desktop packages redirect to /desktop/<version>/<filename>.
  */
 export function getPackageRedirect(pathname: string): string | null {
 	if (!pathname.startsWith('/repos/')) return null;
@@ -21,11 +25,19 @@ export function getPackageRedirect(pathname: string): string | null {
 
 	if (!PACKAGE_EXTENSIONS.some((ext) => filename.endsWith(ext))) return null;
 
-	const match = filename.match(VERSION_RE);
-	if (!match) return null;
+	// Try desktop pattern first (more specific prefix)
+	const desktopMatch = filename.match(DESKTOP_VERSION_RE);
+	if (desktopMatch) {
+		return `/desktop/${desktopMatch[1]}/${filename}`;
+	}
 
-	const version = match[1];
-	return `/vikunja/${version}/${filename}`;
+	// Then server pattern
+	const serverMatch = filename.match(SERVER_VERSION_RE);
+	if (serverMatch) {
+		return `/vikunja/${serverMatch[1]}/${filename}`;
+	}
+
+	return null;
 }
 
 async function listBucket(bucket: R2Bucket, options?: R2ListOptions): Promise<R2Objects> {
