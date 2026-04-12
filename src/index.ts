@@ -2,6 +2,32 @@ import { Env, SiteConfig } from './types';
 import { renderTemplFull, renderJson } from './render';
 import { getSiteConfig } from './config';
 
+const PACKAGE_EXTENSIONS = ['.deb', '.rpm', '.apk', '.archlinux', '.pkg.tar.zst'];
+
+// Matches version like v2.2.0, 0.24.6, v1.0.0-rc1, v1.0.0-beta2, etc.
+// Captures the full version including optional v-prefix and pre-release suffix.
+const VERSION_RE = /vikunja-(v?\d+\.\d+\.\d+(?:-[a-zA-Z]+\d*)?)-/;
+
+/**
+ * For requests under /repos/ that target a package file, redirect to the
+ * existing artifact at /vikunja/<version>/<filename> so we don't need to
+ * store the same file twice in R2.
+ */
+export function getPackageRedirect(pathname: string): string | null {
+	if (!pathname.startsWith('/repos/')) return null;
+
+	const filename = pathname.split('/').pop();
+	if (!filename) return null;
+
+	if (!PACKAGE_EXTENSIONS.some((ext) => filename.endsWith(ext))) return null;
+
+	const match = filename.match(VERSION_RE);
+	if (!match) return null;
+
+	const version = match[1];
+	return `/vikunja/${version}/${filename}`;
+}
+
 async function listBucket(bucket: R2Bucket, options?: R2ListOptions): Promise<R2Objects> {
     // List all objects in the bucket, launch new request if list is truncated
     const objects: R2Object[] = [];
@@ -63,6 +89,12 @@ export default {
         const url = new URL(request.url);
         const domain = url.hostname;
         const isJson = wantsJson(request);
+
+        // Redirect repo package requests to existing artifacts
+        const redirect = getPackageRedirect(url.pathname);
+        if (redirect) {
+            return Response.redirect(new URL(redirect, url.origin).toString(), 302);
+        }
 
         // Strip .json suffix for bucket lookup
         let path = url.pathname;
