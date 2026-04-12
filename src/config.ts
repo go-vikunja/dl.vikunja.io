@@ -9,6 +9,11 @@ export function getSiteConfig(env: Env, domain: string): SiteConfig | undefined 
                 '/': 'Vikunja Download',
                 '/vikunja': 'Vikunja Server Package download',
                 '/desktop': 'Vikunja Desktop download',
+                '/repos': 'Vikunja Package Repositories',
+                '/repos/apt': 'Debian/Ubuntu APT Repository',
+                '/repos/rpm': 'RHEL/Fedora RPM Repository',
+                '/repos/apk': 'Alpine APK Repository',
+                '/repos/pacman': 'Arch Linux Pacman Repository',
             },
             showPoweredBy: false, // Set to false to hide the "Powered by" information at footer
 
