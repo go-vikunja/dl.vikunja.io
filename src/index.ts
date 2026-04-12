@@ -4,11 +4,14 @@ import { getSiteConfig } from './config';
 
 const PACKAGE_EXTENSIONS = ['.deb', '.rpm', '.apk', '.archlinux', '.pacman', '.pkg.tar.zst'];
 
-// Server packages: vikunja-v2.2.0-x86_64.deb, vikunja-0.24.6-aarch64.rpm, etc.
-const SERVER_VERSION_RE = /vikunja-(v?\d+\.\d+\.\d+(?:-[a-zA-Z]+\d*)?)-/;
+// Version pattern shared by both: numeric (v2.2.0, 0.24.6, v1.0.0-rc1) or "unstable"
+const VERSION_PATTERN = `(?:v?\\d+\\.\\d+\\.\\d+(?:-[a-zA-Z]+\\d*)?|unstable)`;
+
+// Server packages: vikunja-v2.2.0-x86_64.deb, vikunja-unstable-aarch64.rpm, etc.
+const SERVER_VERSION_RE = new RegExp(`vikunja-(${VERSION_PATTERN})-`);
 
 // Desktop packages: Vikunja Desktop-v2.2.0.deb, Vikunja Desktop-unstable.rpm, etc.
-const DESKTOP_VERSION_RE = /Vikunja Desktop-(v?\d+\.\d+\.\d+(?:-[a-zA-Z]+\d*)?)\./;
+const DESKTOP_VERSION_RE = new RegExp(`Vikunja Desktop-(${VERSION_PATTERN})\\.`);
 
 /**
  * For requests under /repos/ that target a package file, redirect to the

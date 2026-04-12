@@ -119,4 +119,29 @@ describe('getPackageRedirect', () => {
 			'/desktop/v1.0.0-rc1/Vikunja Desktop-v1.0.0-rc1.deb',
 		);
 	});
+
+	// Unstable build tests
+	it('redirects unstable server .deb', () => {
+		expect(getPackageRedirect('/repos/apt/pool/vikunja-unstable-x86_64.deb')).toBe(
+			'/vikunja/unstable/vikunja-unstable-x86_64.deb',
+		);
+	});
+
+	it('redirects unstable server .rpm', () => {
+		expect(getPackageRedirect('/repos/rpm/x86_64/vikunja-unstable-x86_64.rpm')).toBe(
+			'/vikunja/unstable/vikunja-unstable-x86_64.rpm',
+		);
+	});
+
+	it('redirects unstable desktop .deb', () => {
+		expect(getPackageRedirect('/repos/apt/pool/Vikunja Desktop-unstable.deb')).toBe(
+			'/desktop/unstable/Vikunja Desktop-unstable.deb',
+		);
+	});
+
+	it('redirects unstable desktop .pacman', () => {
+		expect(getPackageRedirect('/repos/pacman/x86_64/Vikunja Desktop-unstable.pacman')).toBe(
+			'/desktop/unstable/Vikunja Desktop-unstable.pacman',
+		);
+	});
 });
