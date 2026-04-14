@@ -201,6 +201,19 @@ describe('getPackageRedirect', () => {
 		);
 	});
 
+	// Signature file tests
+	it('redirects .sig for archlinux package', () => {
+		expect(getPackageRedirect('/repos/pacman/unstable/x86_64/vikunja-unstable-x86_64.archlinux.sig')).toBe(
+			'/vikunja/unstable/vikunja-unstable-x86_64.archlinux.sig',
+		);
+	});
+
+	it('redirects .sig for reprepro pool .deb', () => {
+		expect(getPackageRedirect('/repos/apt/pool/main/v/vikunja/vikunja_2.3.0~55-797c8130_amd64.deb.sig')).toBe(
+			'/vikunja/unstable/vikunja-unstable-x86_64.deb.sig',
+		);
+	});
+
 	it('redirects APK index stable filename', () => {
 		expect(getPackageRedirect('/repos/apk/stable/main/x86_64/vikunja-0.24.6-r0.apk')).toBe(
 			'/vikunja/v0.24.6/vikunja-v0.24.6-x86_64.apk',

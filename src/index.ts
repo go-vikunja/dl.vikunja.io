@@ -59,6 +59,12 @@ function pkgVersionToArtifactVersion(pkgVersion: string): string {
 export function getPackageRedirect(pathname: string): string | null {
 	if (!pathname.startsWith('/repos/')) return null;
 
+	// Handle .sig requests by redirecting to the signature of the resolved artifact
+	if (pathname.endsWith('.sig')) {
+		const base = getPackageRedirect(pathname.slice(0, -'.sig'.length));
+		return base ? base + '.sig' : null;
+	}
+
 	const rawFilename = pathname.split('/').pop();
 	if (!rawFilename) return null;
 	const filename = decodeURIComponent(rawFilename);
