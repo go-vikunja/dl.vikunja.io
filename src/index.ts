@@ -20,6 +20,10 @@ const POOL_SERVER_RE = /^vikunja_([^_]+)_([^.]+)\.deb$/;
 // Reprepro pool desktop filenames: vikunja-desktop_2.3.0~50~ga1106420_amd64.deb
 const POOL_DESKTOP_RE = /^vikunja-desktop_([^_]+)_([^.]+)\.deb$/;
 
+// APK index filenames: vikunja-2.3.0_63-4d8c37f8.apk
+// Alpine uses _ instead of ~ for pre-release, format: <name>-<version>.apk
+const APK_SERVER_RE = /^vikunja-(\d+\.\d+\.\d+[^.]*?)\.apk$/;
+
 // Map Debian architecture names to Go/nfpm architecture names
 const DEBIAN_ARCH_MAP: Record<string, string> = {
 	amd64: 'x86_64',
@@ -28,16 +32,17 @@ const DEBIAN_ARCH_MAP: Record<string, string> = {
 };
 
 /**
- * Determine the artifact version directory from a Debian package version.
- * Versions containing ~ are pre-releases (unstable builds).
+ * Determine the artifact version directory from a package manager version string.
+ * Debian: versions containing ~ are pre-releases (unstable).
+ * Alpine: versions containing _ are pre-releases (unstable).
  * Clean versions like "0.24.6-1" map to tag releases like "v0.24.6".
  */
-function debVersionToArtifactVersion(debVersion: string): string {
-	if (debVersion.includes('~')) {
+function pkgVersionToArtifactVersion(pkgVersion: string): string {
+	if (pkgVersion.includes('~') || pkgVersion.includes('_')) {
 		return 'unstable';
 	}
-	// Strip the Debian revision suffix (-1, -2, etc.)
-	const upstream = debVersion.replace(/-\d+$/, '');
+	// Strip the package revision suffix (-1, -r0, etc.)
+	const upstream = pkgVersion.replace(/-(?:r?\d+)$/, '');
 	return `v${upstream}`;
 }
 
@@ -66,27 +71,39 @@ export function getPackageRedirect(pathname: string): string | null {
 		return `/desktop/${desktopMatch[1]}/${filename}`;
 	}
 
-	// Then server pattern
-	const serverMatch = filename.match(SERVER_VERSION_RE);
-	if (serverMatch) {
-		return `/vikunja/${serverMatch[1]}/${filename}`;
-	}
-
 	// Handle reprepro pool filenames (APT repos)
 	const poolDesktopMatch = filename.match(POOL_DESKTOP_RE);
 	if (poolDesktopMatch) {
-		const version = debVersionToArtifactVersion(poolDesktopMatch[1]);
+		const version = pkgVersionToArtifactVersion(poolDesktopMatch[1]);
 		const artifactName = `Vikunja Desktop-${version}.deb`;
 		return `/desktop/${version}/${artifactName}`;
 	}
 
 	const poolServerMatch = filename.match(POOL_SERVER_RE);
 	if (poolServerMatch) {
-		const version = debVersionToArtifactVersion(poolServerMatch[1]);
+		const version = pkgVersionToArtifactVersion(poolServerMatch[1]);
 		const debArch = poolServerMatch[2];
 		const arch = DEBIAN_ARCH_MAP[debArch] || debArch;
 		const artifactName = `vikunja-${version}-${arch}.deb`;
 		return `/vikunja/${version}/${artifactName}`;
+	}
+
+	// Handle APK index filenames: vikunja-2.3.0_63-4d8c37f8.apk
+	// Must be before SERVER_VERSION_RE which would partially match these.
+	// The arch is in the URL path, not the filename.
+	const apkMatch = filename.match(APK_SERVER_RE);
+	if (apkMatch) {
+		const version = pkgVersionToArtifactVersion(apkMatch[1]);
+		const parts = pathname.split('/');
+		const arch = parts[parts.length - 2] || 'x86_64';
+		const artifactName = `vikunja-${version}-${arch}.apk`;
+		return `/vikunja/${version}/${artifactName}`;
+	}
+
+	// Generic server pattern: vikunja-<version>-<arch>.<ext>
+	const serverMatch = filename.match(SERVER_VERSION_RE);
+	if (serverMatch) {
+		return `/vikunja/${serverMatch[1]}/${filename}`;
 	}
 
 	return null;

@@ -187,4 +187,23 @@ describe('getPackageRedirect', () => {
 			'/desktop/v0.24.6/Vikunja Desktop-v0.24.6.deb',
 		);
 	});
+
+	// APK index filename tests
+	it('redirects APK index unstable filename', () => {
+		expect(getPackageRedirect('/repos/apk/unstable/main/x86_64/vikunja-2.3.0_63-4d8c37f8.apk')).toBe(
+			'/vikunja/unstable/vikunja-unstable-x86_64.apk',
+		);
+	});
+
+	it('redirects APK index unstable filename aarch64', () => {
+		expect(getPackageRedirect('/repos/apk/unstable/main/aarch64/vikunja-2.3.0_63-4d8c37f8.apk')).toBe(
+			'/vikunja/unstable/vikunja-unstable-aarch64.apk',
+		);
+	});
+
+	it('redirects APK index stable filename', () => {
+		expect(getPackageRedirect('/repos/apk/stable/main/x86_64/vikunja-0.24.6-r0.apk')).toBe(
+			'/vikunja/v0.24.6/vikunja-v0.24.6-x86_64.apk',
+		);
+	});
 });
