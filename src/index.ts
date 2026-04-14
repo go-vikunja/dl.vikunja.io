@@ -159,6 +159,23 @@ export default {
             return Response.redirect(new URL(redirect, url.origin).toString(), 302);
         }
 
+        // Serve repo metadata directly from R2 bucket binding to avoid
+        // Cloudflare CDN re-compressing files, which changes sizes and
+        // breaks hash verification by package managers (apt, dnf, etc.).
+        if (url.pathname.startsWith('/repos/') && !url.pathname.endsWith('/')) {
+            const siteConfig = getSiteConfig(env, domain);
+            if (siteConfig) {
+                const key = url.pathname.slice(1); // strip leading /
+                const object = await siteConfig.bucket.get(key);
+                if (object) {
+                    const headers = new Headers();
+                    object.writeHttpMetadata(headers);
+                    headers.set('etag', object.httpEtag);
+                    return new Response(object.body, { headers });
+                }
+            }
+        }
+
         // Strip .json suffix for bucket lookup
         let path = url.pathname;
         if (path.endsWith('.json')) {
