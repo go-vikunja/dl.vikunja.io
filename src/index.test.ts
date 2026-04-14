@@ -144,4 +144,41 @@ describe('getPackageRedirect', () => {
 			'/desktop/unstable/Vikunja Desktop-unstable.pacman',
 		);
 	});
+
+	// Reprepro pool filename tests (APT repos use different naming)
+	it('redirects reprepro pool unstable server .deb', () => {
+		expect(getPackageRedirect('/repos/apt/pool/main/v/vikunja/vikunja_2.3.0~55-797c8130_amd64.deb')).toBe(
+			'/vikunja/unstable/vikunja-unstable-x86_64.deb',
+		);
+	});
+
+	it('redirects reprepro pool unstable server .deb arm64', () => {
+		expect(getPackageRedirect('/repos/apt/pool/main/v/vikunja/vikunja_2.3.0~55-797c8130_arm64.deb')).toBe(
+			'/vikunja/unstable/vikunja-unstable-aarch64.deb',
+		);
+	});
+
+	it('redirects reprepro pool unstable server .deb armhf', () => {
+		expect(getPackageRedirect('/repos/apt/pool/main/v/vikunja/vikunja_2.3.0~55-797c8130_armhf.deb')).toBe(
+			'/vikunja/unstable/vikunja-unstable-armv7.deb',
+		);
+	});
+
+	it('redirects reprepro pool stable server .deb', () => {
+		expect(getPackageRedirect('/repos/apt/pool/main/v/vikunja/vikunja_0.24.6-1_amd64.deb')).toBe(
+			'/vikunja/v0.24.6/vikunja-v0.24.6-x86_64.deb',
+		);
+	});
+
+	it('redirects reprepro pool unstable desktop .deb', () => {
+		expect(getPackageRedirect('/repos/apt/pool/main/v/vikunja-desktop/vikunja-desktop_2.3.0~50~ga1106420_amd64.deb')).toBe(
+			'/desktop/unstable/Vikunja Desktop-unstable.deb',
+		);
+	});
+
+	it('redirects reprepro pool stable desktop .deb', () => {
+		expect(getPackageRedirect('/repos/apt/pool/main/v/vikunja-desktop/vikunja-desktop_0.24.6-1_amd64.deb')).toBe(
+			'/desktop/v0.24.6/Vikunja Desktop-v0.24.6.deb',
+		);
+	});
 });

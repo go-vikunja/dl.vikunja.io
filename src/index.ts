@@ -13,12 +13,43 @@ const SERVER_VERSION_RE = new RegExp(`vikunja-(${VERSION_PATTERN})-`);
 // Desktop packages: Vikunja Desktop-v2.2.0.deb, Vikunja Desktop-unstable.rpm, etc.
 const DESKTOP_VERSION_RE = new RegExp(`Vikunja Desktop-(${VERSION_PATTERN})\\.`);
 
+// Reprepro pool filenames: vikunja_2.3.0~55-797c8130_amd64.deb
+// The ~ in the version means it's a pre-release (unstable), clean versions are tag releases.
+const POOL_SERVER_RE = /^vikunja_([^_]+)_([^.]+)\.deb$/;
+
+// Reprepro pool desktop filenames: vikunja-desktop_2.3.0~50~ga1106420_amd64.deb
+const POOL_DESKTOP_RE = /^vikunja-desktop_([^_]+)_([^.]+)\.deb$/;
+
+// Map Debian architecture names to Go/nfpm architecture names
+const DEBIAN_ARCH_MAP: Record<string, string> = {
+	amd64: 'x86_64',
+	arm64: 'aarch64',
+	armhf: 'armv7',
+};
+
+/**
+ * Determine the artifact version directory from a Debian package version.
+ * Versions containing ~ are pre-releases (unstable builds).
+ * Clean versions like "0.24.6-1" map to tag releases like "v0.24.6".
+ */
+function debVersionToArtifactVersion(debVersion: string): string {
+	if (debVersion.includes('~')) {
+		return 'unstable';
+	}
+	// Strip the Debian revision suffix (-1, -2, etc.)
+	const upstream = debVersion.replace(/-\d+$/, '');
+	return `v${upstream}`;
+}
+
 /**
  * For requests under /repos/ that target a package file, redirect to the
  * existing artifact so we don't need to store the same file twice in R2.
  *
  * Server packages redirect to /vikunja/<version>/<filename>.
  * Desktop packages redirect to /desktop/<version>/<filename>.
+ *
+ * This also handles reprepro pool filenames (APT repos) which use a
+ * different naming convention than the original artifacts.
  */
 export function getPackageRedirect(pathname: string): string | null {
 	if (!pathname.startsWith('/repos/')) return null;
@@ -38,6 +69,23 @@ export function getPackageRedirect(pathname: string): string | null {
 	const serverMatch = filename.match(SERVER_VERSION_RE);
 	if (serverMatch) {
 		return `/vikunja/${serverMatch[1]}/${filename}`;
+	}
+
+	// Handle reprepro pool filenames (APT repos)
+	const poolDesktopMatch = filename.match(POOL_DESKTOP_RE);
+	if (poolDesktopMatch) {
+		const version = debVersionToArtifactVersion(poolDesktopMatch[1]);
+		const artifactName = `Vikunja Desktop-${version}.deb`;
+		return `/desktop/${version}/${artifactName}`;
+	}
+
+	const poolServerMatch = filename.match(POOL_SERVER_RE);
+	if (poolServerMatch) {
+		const version = debVersionToArtifactVersion(poolServerMatch[1]);
+		const debArch = poolServerMatch[2];
+		const arch = DEBIAN_ARCH_MAP[debArch] || debArch;
+		const artifactName = `vikunja-${version}-${arch}.deb`;
+		return `/vikunja/${version}/${artifactName}`;
 	}
 
 	return null;
