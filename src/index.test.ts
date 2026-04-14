@@ -152,6 +152,12 @@ describe('getPackageRedirect', () => {
 		);
 	});
 
+	it('redirects reprepro pool unstable server .deb with URL-encoded tilde', () => {
+		expect(getPackageRedirect('/repos/apt/pool/main/v/vikunja/vikunja_2.3.0%7e63-4d8c37f8_amd64.deb')).toBe(
+			'/vikunja/unstable/vikunja-unstable-x86_64.deb',
+		);
+	});
+
 	it('redirects reprepro pool unstable server .deb arm64', () => {
 		expect(getPackageRedirect('/repos/apt/pool/main/v/vikunja/vikunja_2.3.0~55-797c8130_arm64.deb')).toBe(
 			'/vikunja/unstable/vikunja-unstable-aarch64.deb',

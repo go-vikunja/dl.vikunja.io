@@ -54,8 +54,9 @@ function debVersionToArtifactVersion(debVersion: string): string {
 export function getPackageRedirect(pathname: string): string | null {
 	if (!pathname.startsWith('/repos/')) return null;
 
-	const filename = pathname.split('/').pop();
-	if (!filename) return null;
+	const rawFilename = pathname.split('/').pop();
+	if (!rawFilename) return null;
+	const filename = decodeURIComponent(rawFilename);
 
 	if (!PACKAGE_EXTENSIONS.some((ext) => filename.endsWith(ext))) return null;
 
