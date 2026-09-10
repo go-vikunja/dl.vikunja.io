@@ -41,6 +41,22 @@ It will only overwrite the response when all of the following conditions are met
 
 In such a case, it will generate a HTML page with the list of "subdirectories" and "files" under the current "directory" and return it. Otherwise, it will just return the response from R2. So **putting this worker in front of your R2 bucket will not affect any normal access to your bucket**.
 
+## Package repository redirects
+
+Package URLs under `/repos/` redirect to existing release artifacts at
+`/<package>/<version>/<filename>`. New packages need no worker changes when they
+follow this layout, for example `/veans/v2.6.0/veans-v2.6.0-x86_64.deb`.
+
+The worker converts APT pool names (`<package>_<version>_<arch>.deb`) and APK index
+names (`<package>-<version>.apk`) to artifact filenames. APT architecture names map
+to `x86_64`, `aarch64`, or `armv7`; APK gets the architecture from the URL directory.
+Package versions containing `~` or `_` map to `unstable`. Other package versions map
+to a `v`-prefixed release directory after removing the package revision.
+
+RPM and Pacman URLs retain their artifact filenames. Requests ending in `.sig`
+follow the same redirect with `.sig` appended. Desktop retains its legacy mapping
+from `vikunja-desktop` to `/desktop/<version>/Vikunja Desktop-<version>.deb`.
+
 ## JSON API
 
 Directory listings can be retrieved as JSON instead of HTML. This is useful for programmatic access or building custom UIs on top of the file listing.
