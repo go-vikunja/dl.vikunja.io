@@ -4,25 +4,20 @@ import { getSiteConfig } from './config';
 
 const PACKAGE_EXTENSIONS = ['.deb', '.rpm', '.apk', '.archlinux', '.pacman', '.pkg.tar.zst'];
 
-// Version pattern shared by both: numeric (v2.2.0, 0.24.6, v1.0.0-rc1) or "unstable"
 const VERSION_PATTERN = `(?:v?\\d+\\.\\d+\\.\\d+(?:-[a-zA-Z]+\\d*)?|unstable)`;
+const PACKAGE_NAME_PATTERN = '[a-z0-9][a-z0-9+.-]*?';
 
-// Server packages: vikunja-v2.2.0-x86_64.deb, vikunja-unstable-aarch64.rpm, etc.
-const SERVER_VERSION_RE = new RegExp(`vikunja-(${VERSION_PATTERN})-`);
+const PACKAGE_VERSION_RE = new RegExp(`^(${PACKAGE_NAME_PATTERN})-(${VERSION_PATTERN})-`);
 
 // Desktop packages: Vikunja Desktop-v2.2.0.deb, Vikunja Desktop-unstable.rpm, etc.
 const DESKTOP_VERSION_RE = new RegExp(`Vikunja Desktop-(${VERSION_PATTERN})\\.`);
 
-// Reprepro pool filenames: vikunja_2.3.0~55-797c8130_amd64.deb
-// The ~ in the version means it's a pre-release (unstable), clean versions are tag releases.
-const POOL_SERVER_RE = /^vikunja_([^_]+)_([^.]+)\.deb$/;
+const POOL_PACKAGE_RE = new RegExp(`^(${PACKAGE_NAME_PATTERN})_([^_]+)_([^.]+)\\.deb$`);
 
 // Reprepro pool desktop filenames: vikunja-desktop_2.3.0~50~ga1106420_amd64.deb
 const POOL_DESKTOP_RE = /^vikunja-desktop_([^_]+)_([^.]+)\.deb$/;
 
-// APK index filenames: vikunja-2.3.0_63-4d8c37f8.apk
-// Alpine uses _ instead of ~ for pre-release, format: <name>-<version>.apk
-const APK_SERVER_RE = /^vikunja-(\d+\.\d+\.\d+[^.]*?)\.apk$/;
+const APK_PACKAGE_RE = new RegExp(`^(${PACKAGE_NAME_PATTERN})-(\\d+\\.\\d+\\.\\d+[^.]*?)\\.apk$`);
 
 // Map Debian architecture names to Go/nfpm architecture names
 const DEBIAN_ARCH_MAP: Record<string, string> = {
@@ -46,16 +41,7 @@ function pkgVersionToArtifactVersion(pkgVersion: string): string {
 	return `v${upstream}`;
 }
 
-/**
- * For requests under /repos/ that target a package file, redirect to the
- * existing artifact so we don't need to store the same file twice in R2.
- *
- * Server packages redirect to /vikunja/<version>/<filename>.
- * Desktop packages redirect to /desktop/<version>/<filename>.
- *
- * This also handles reprepro pool filenames (APT repos) which use a
- * different naming convention than the original artifacts.
- */
+// Repository package files are omitted from R2 to avoid duplicating release artifacts.
 export function getPackageRedirect(pathname: string): string | null {
 	if (!pathname.startsWith('/repos/')) return null;
 
@@ -85,31 +71,27 @@ export function getPackageRedirect(pathname: string): string | null {
 		return `/desktop/${version}/${artifactName}`;
 	}
 
-	const poolServerMatch = filename.match(POOL_SERVER_RE);
-	if (poolServerMatch) {
-		const version = pkgVersionToArtifactVersion(poolServerMatch[1]);
-		const debArch = poolServerMatch[2];
+	const poolMatch = filename.match(POOL_PACKAGE_RE);
+	if (poolMatch) {
+		const [, name, pkgVersion, debArch] = poolMatch;
+		const version = pkgVersionToArtifactVersion(pkgVersion);
 		const arch = DEBIAN_ARCH_MAP[debArch] || debArch;
-		const artifactName = `vikunja-${version}-${arch}.deb`;
-		return `/vikunja/${version}/${artifactName}`;
+		return `/${name}/${version}/${name}-${version}-${arch}.deb`;
 	}
 
-	// Handle APK index filenames: vikunja-2.3.0_63-4d8c37f8.apk
-	// Must be before SERVER_VERSION_RE which would partially match these.
-	// The arch is in the URL path, not the filename.
-	const apkMatch = filename.match(APK_SERVER_RE);
+	// APK index versions would partially match the artifact filename pattern below.
+	const apkMatch = filename.match(APK_PACKAGE_RE);
 	if (apkMatch) {
-		const version = pkgVersionToArtifactVersion(apkMatch[1]);
+		const [, name, pkgVersion] = apkMatch;
+		const version = pkgVersionToArtifactVersion(pkgVersion);
 		const parts = pathname.split('/');
 		const arch = parts[parts.length - 2] || 'x86_64';
-		const artifactName = `vikunja-${version}-${arch}.apk`;
-		return `/vikunja/${version}/${artifactName}`;
+		return `/${name}/${version}/${name}-${version}-${arch}.apk`;
 	}
 
-	// Generic server pattern: vikunja-<version>-<arch>.<ext>
-	const serverMatch = filename.match(SERVER_VERSION_RE);
-	if (serverMatch) {
-		return `/vikunja/${serverMatch[1]}/${filename}`;
+	const packageMatch = filename.match(PACKAGE_VERSION_RE);
+	if (packageMatch) {
+		return `/${packageMatch[1]}/${packageMatch[2]}/${filename}`;
 	}
 
 	return null;

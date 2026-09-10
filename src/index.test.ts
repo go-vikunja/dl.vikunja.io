@@ -35,6 +35,52 @@ describe('wantsJson', () => {
 });
 
 describe('getPackageRedirect', () => {
+	describe.each(['veans', 'future-agent'])('%s packages', (name) => {
+		it.each([
+			['2.6.0', 'v2.6.0', 'amd64', 'x86_64'],
+			['2.6.0', 'v2.6.0', 'arm64', 'aarch64'],
+			['2.6.0', 'v2.6.0', 'armhf', 'armv7'],
+			['2.6.0-1', 'v2.6.0', 'amd64', 'x86_64'],
+			['2.6.0%7e55-797c8130', 'unstable', 'amd64', 'x86_64'],
+		])('redirects APT version %s (%s), %s to %s', (version, artifactVersion, debArch, arch) => {
+			expect(getPackageRedirect(`/repos/apt/pool/main/${name[0]}/${name}/${name}_${version}_${debArch}.deb`)).toBe(
+				`/${name}/${artifactVersion}/${name}-${artifactVersion}-${arch}.deb`,
+			);
+		});
+
+		it.each(['deb', 'rpm', 'apk', 'archlinux', 'pacman', 'pkg.tar.zst'])('redirects .%s artifacts', (extension) => {
+			expect(getPackageRedirect(`/repos/packages/${name}-v2.6.0-x86_64.${extension}`)).toBe(
+				`/${name}/v2.6.0/${name}-v2.6.0-x86_64.${extension}`,
+			);
+		});
+
+		it('redirects unstable artifacts and signatures', () => {
+			expect(getPackageRedirect(`/repos/pacman/unstable/aarch64/${name}-unstable-aarch64.archlinux.sig`)).toBe(
+				`/${name}/unstable/${name}-unstable-aarch64.archlinux.sig`,
+			);
+		});
+
+		it.each([
+			['2.6.0', 'v2.6.0', 'x86_64'],
+			['2.6.0-r0', 'v2.6.0', 'aarch64'],
+			['2.6.0_55-797c8130', 'unstable', 'armv7'],
+		])('redirects APK index version %s (%s), %s', (version, artifactVersion, arch) => {
+			expect(getPackageRedirect(`/repos/apk/stable/main/${arch}/${name}-${version}.apk`)).toBe(
+				`/${name}/${artifactVersion}/${name}-${artifactVersion}-${arch}.apk`,
+			);
+		});
+
+		it('redirects release candidates', () => {
+			expect(getPackageRedirect(`/repos/rpm/x86_64/${name}-v2.6.0-rc1-x86_64.rpm`)).toBe(
+				`/${name}/v2.6.0-rc1/${name}-v2.6.0-rc1-x86_64.rpm`,
+			);
+		});
+
+		it('does not redirect direct artifact requests', () => {
+			expect(getPackageRedirect(`/${name}/v2.6.0/${name}-v2.6.0-x86_64.deb`)).toBeNull();
+		});
+	});
+
 	it('redirects .deb files from apt repo to existing path', () => {
 		expect(getPackageRedirect('/repos/apt/pool/vikunja-v2.2.0-x86_64.deb')).toBe(
 			'/vikunja/v2.2.0/vikunja-v2.2.0-x86_64.deb',
